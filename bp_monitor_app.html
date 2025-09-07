@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BP Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 420px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #6c757d;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #ff6b6b;
+            border-bottom: 2px solid #ff6b6b;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="number"], input[type="datetime-local"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="number"]:focus, input[type="datetime-local"]:focus, textarea:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .reading-card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid transparent;
+            transition: transform 0.2s ease;
+        }
+
+        .reading-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .reading-card.normal { border-left-color: #28a745; }
+        .reading-card.elevated { border-left-color: #ffc107; }
+        .reading-card.high-stage1 { border-left-color: #fd7e14; }
+        .reading-card.high-stage2 { border-left-color: #dc3545; }
+        .reading-card.crisis { border-left-color: #6f42c1; }
+
+        .reading-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .bp-values {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .bp-category {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .category-normal { background: #28a745; }
+        .category-elevated { background: #ffc107; }
+        .category-high-stage1 { background: #fd7e14; }
+        .category-high-stage2 { background: #dc3545; }
+        .category-crisis { background: #6f42c1; }
+
+        .reading-details {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+
+        .reading-notes {
+            font-size: 0.85rem;
+            color: #495057;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .export-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .export-section h4 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+            
+            .input-row {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🫀 BP Monitor</h1>
+            <p>Track your blood pressure journey</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('entry')">Entry</button>
+            <button class="nav-tab" onclick="showTab('history')">History</button>
+            <button class="nav-tab" onclick="showTab('reports')">Reports</button>
+        </div>
+
+        <!-- Entry Tab -->
+        <div id="entry-tab" class="tab-content active">
+            <form id="bp-form">
+                <div class="input-group">
+                    <label for="systolic">Systolic Pressure (mmHg)</label>
+                    <input type="number" id="systolic" min="70" max="250" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="diastolic">Diastolic Pressure (mmHg)</label>
+                    <input type="number" id="diastolic" min="40" max="150" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="pulse">Heart Rate (bpm)</label>
+                    <input type="number" id="pulse" min="40" max="200">
+                </div>
+                
+                <div class="input-group">
+                    <label for="datetime">Date & Time</label>
+                    <input type="datetime-local" id="datetime" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="notes">Notes (optional)</label>
+                    <textarea id="notes" rows="3" placeholder="Add any relevant notes..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary pulse">Add Reading</button>
+            </form>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <div id="readings-list">
+                <div class="no-data">
+                    <h3>No readings yet</h3>
+                    <p>Add your first blood pressure reading to get started!</p>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="clearAllData()">Clear All Data</button>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="reports-tab" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-readings">0</div>
+                    <div class="stat-label">Total Readings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avg-systolic">--</div>
+                    <div class="stat-label">Avg Systolic</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avg-diastolic">--</div>
+                    <div class="stat-label">Avg Diastolic</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avg-pulse">--</div>
+                    <div class="stat-label">Avg Heart Rate</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h4>Weekly Trend</h4>
+                <canvas id="weekly-chart" width="300" height="200"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h4>Monthly Overview</h4>
+                <canvas id="monthly-chart" width="300" height="200"></canvas>
+            </div>
+
+            <div class="export-section">
+                <h4>Export Data</h4>
+                <button class="btn btn-primary" onclick="exportToCSV()">Export to CSV</button>
+                <button class="btn btn-secondary" onclick="exportToGoogleSheets()">Export to Google Sheets</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the app
+        let readings = JSON.parse(localStorage.getItem('bpReadings')) || [];
+        
+        // Set current datetime
+        document.getElementById('datetime').value = new Date().toISOString().slice(0, 16);
+        
+        // Form submission
+        document.getElementById('bp-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const reading = {
+                id: Date.now(),
+                systolic: parseInt(document.getElementById('systolic').value),
+                diastolic: parseInt(document.getElementById('diastolic').value),
+                pulse: parseInt(document.getElementById('pulse').value) || null,
+                datetime: document.getElementById('datetime').value,
+                notes: document.getElementById('notes').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            readings.unshift(reading);
+            localStorage.setItem('bpReadings', JSON.stringify(readings));
+            
+            // Reset form
+            this.reset();
+            document.getElementById('datetime').value = new Date().toISOString().slice(0, 16);
+            
+            // Update displays
+            displayReadings();
+            updateStats();
+            
+            // Show success feedback
+            const btn = document.querySelector('.btn-primary');
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Added!';
+            btn.style.background = '#28a745';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        });
+        
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tabName === 'reports') {
+                updateStats();
+                setTimeout(() => {
+                    drawCharts();
+                }, 100);
+            } else if (tabName === 'history') {
+                displayReadings();
+            }
+        }
+        
+        function getBPCategory(systolic, diastolic) {
+            if (systolic >= 180 || diastolic >= 120) return { name: 'Crisis', class: 'crisis' };
+            if (systolic >= 140 || diastolic >= 90) return { name: 'High Stage 2', class: 'high-stage2' };
+            if (systolic >= 130 || diastolic >= 80) return { name: 'High Stage 1', class: 'high-stage1' };
+            if (systolic >= 120 && diastolic < 80) return { name: 'Elevated', class: 'elevated' };
+            return { name: 'Normal', class: 'normal' };
+        }
+        
+        function displayReadings() {
+            const container = document.getElementById('readings-list');
+            
+            if (readings.length === 0) {
+                container.innerHTML = `
+                    <div class="no-data">
+                        <h3>No readings yet</h3>
+                        <p>Add your first blood pressure reading to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = readings.map(reading => {
+                const category = getBPCategory(reading.systolic, reading.diastolic);
+                const date = new Date(reading.datetime);
+                
+                return `
+                    <div class="reading-card ${category.class}">
+                        <div class="reading-header">
+                            <div class="bp-values">${reading.systolic}/${reading.diastolic}</div>
+                            <span class="bp-category category-${category.class}">${category.name}</span>
+                        </div>
+                        <div class="reading-details">
+                            📅 ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            ${reading.pulse ? `• 💓 ${reading.pulse} bpm` : ''}
+                        </div>
+                        ${reading.notes ? `<div class="reading-notes">📝 ${reading.notes}</div>` : ''}
+                        <button class="delete-btn" onclick="deleteReading(${reading.id})">Delete</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function deleteReading(id) {
+            readings = readings.filter(r => r.id !== id);
+            localStorage.setItem('bpReadings', JSON.stringify(readings));
+            displayReadings();
+            updateStats();
+        }
+        
+        function clearAllData() {
+            if (confirm('Are you sure you want to delete all readings?')) {
+                readings = [];
+                localStorage.removeItem('bpReadings');
+                displayReadings();
+                updateStats();
+            }
+        }
+        
+        function updateStats() {
+            const totalEl = document.getElementById('total-readings');
+            const avgSysEl = document.getElementById('avg-systolic');
+            const avgDiaEl = document.getElementById('avg-diastolic');
+            const avgPulseEl = document.getElementById('avg-pulse');
+            
+            if (readings.length === 0) {
+                totalEl.textContent = '0';
+                avgSysEl.textContent = '--';
+                avgDiaEl.textContent = '--';
+                avgPulseEl.textContent = '--';
+                return;
+            }
+            
+            const avgSys = Math.round(readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length);
+            const avgDia = Math.round(readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length);
+            const readingsWithPulse = readings.filter(r => r.pulse);
+            const avgPulse = readingsWithPulse.length > 0 ? 
+                Math.round(readingsWithPulse.reduce((sum, r) => sum + r.pulse, 0) / readingsWithPulse.length) : null;
+            
+            totalEl.textContent = readings.length;
+            avgSysEl.textContent = avgSys;
+            avgDiaEl.textContent = avgDia;
+            avgPulseEl.textContent = avgPulse || '--';
+        }
+        
+        function drawCharts() {
+            drawWeeklyChart();
+            drawMonthlyChart();
+        }
+        
+        function drawWeeklyChart() {
+            const canvas = document.getElementById('weekly-chart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (readings.length === 0) {
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No data available', canvas.width/2, canvas.height/2);
+                return;
+            }
+            
+            // Get last 7 days of data
+            const now = new Date();
+            const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+            const weeklyData = readings.filter(r => new Date(r.datetime) >= weekAgo)
+                .sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+            
+            if (weeklyData.length === 0) {
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No data this week', canvas.width/2, canvas.height/2);
+                return;
+            }
+            
+            // Draw simple line chart
+            const padding = 40;
+            const chartWidth = canvas.width - 2 * padding;
+            const chartHeight = canvas.height - 2 * padding;
+            
+            // Find min/max values
+            const allValues = weeklyData.flatMap(r => [r.systolic, r.diastolic]);
+            const minVal = Math.min(...allValues) - 10;
+            const maxVal = Math.max(...allValues) + 10;
+            
+            // Draw axes
+            ctx.strokeStyle = '#dee2e6';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, padding + chartHeight);
+            ctx.lineTo(padding + chartWidth, padding + chartHeight);
+            ctx.stroke();
+            
+            if (weeklyData.length > 1) {
+                // Draw systolic line
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                weeklyData.forEach((reading, index) => {
+                    const x = padding + (index / (weeklyData.length - 1)) * chartWidth;
+                    const y = padding + chartHeight - ((reading.systolic - minVal) / (maxVal - minVal)) * chartHeight;
+                    if (index === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+                
+                // Draw diastolic line
+                ctx.strokeStyle = '#007bff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                weeklyData.forEach((reading, index) => {
+                    const x = padding + (index / (weeklyData.length - 1)) * chartWidth;
+                    const y = padding + chartHeight - ((reading.diastolic - minVal) / (maxVal - minVal)) * chartHeight;
+                    if (index === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
+            
+            // Add legend
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillRect(10, 10, 15, 15);
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.fillText('Systolic', 30, 22);
+            
+            ctx.fillStyle = '#007bff';
+            ctx.fillRect(100, 10, 15, 15);
+            ctx.fillStyle = '#333';
+            ctx.fillText('Diastolic', 120, 22);
+        }
+        
+        function drawMonthlyChart() {
+            const canvas = document.getElementById('monthly-chart');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (readings.length === 0) {
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No data available', canvas.width/2, canvas.height/2);
+                return;
+            }
+            
+            // Group readings by week for the last month
+            const now = new Date();
+            const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+            const monthlyData = readings.filter(r => new Date(r.datetime) >= monthAgo);
+            
+            if (monthlyData.length === 0) {
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No data this month', canvas.width/2, canvas.height/2);
+                return;
+            }
+            
+            // Simple bar chart showing average values per week
+            const weeks = {};
+            monthlyData.forEach(reading => {
+                const date = new Date(reading.datetime);
+                const weekStart = new Date(date - date.getDay() * 24 * 60 * 60 * 1000);
+                const weekKey = weekStart.toISOString().split('T')[0];
+                
+                if (!weeks[weekKey]) {
+                    weeks[weekKey] = { systolic: [], diastolic: [] };
+                }
+                weeks[weekKey].systolic.push(reading.systolic);
+                weeks[weekKey].diastolic.push(reading.diastolic);
+            });
+            
+            const weekKeys = Object.keys(weeks).sort();
+            const padding = 40;
+            const chartWidth = canvas.width - 2 * padding;
+            const chartHeight = canvas.height - 2 * padding;
+            const barWidth = chartWidth / (weekKeys.length * 2);
+            
+            // Draw bars
+            weekKeys.forEach((week, index) => {
+                const avgSys = weeks[week].systolic.reduce((a, b) => a + b) / weeks[week].systolic.length;
+                const avgDia = weeks[week].diastolic.reduce((a, b) => a + b) / weeks[week].diastolic.length;
+                
+                const x = padding + index * barWidth * 2;
+                const sysHeight = (avgSys / 200) * chartHeight;
+                const diaHeight = (avgDia / 200) * chartHeight;
+                
+                // Systolic bar
+                ctx.fillStyle = '#ff6b6b';
+                ctx.fillRect(x, padding + chartHeight - sysHeight, barWidth * 0.8, sysHeight);
+                
+                // Diastolic bar
+                ctx.fillStyle = '#007bff';
+                ctx.fillRect(x + barWidth, padding + chartHeight - diaHeight, barWidth * 0.8, diaHeight);
+            });
+            
+            // Add legend
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillRect(10, 10, 15, 15);
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.fillText('Avg Systolic', 30, 22);
+            
+            ctx.fillStyle = '#007bff';
+            ctx.fillRect(150, 10, 15, 15);
+            ctx.fillStyle = '#333';
+            ctx.fillText('Avg Diastolic', 170, 22);
+        }
+        
+        function exportToCSV() {
+            if (readings.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            const headers = ['Date', 'Time', 'Systolic', 'Diastolic', 'Heart Rate', 'Category', 'Notes'];
+            const csvContent = [
+                headers.join(','),
+                ...readings.map(reading => {
+                    const date = new Date(reading.datetime);
+                    const category = getBPCategory(reading.systolic, reading.diastolic);
+                    return [
+                        date.toLocaleDateString(),
+                        date.toLocaleTimeString(),
+                        reading.systolic,
+                        reading.diastolic,
+                        reading.pulse || '',
+                        category.name,
+                        `"${reading.notes || ''}"`
+                    ].join(',');
+                })
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `blood_pressure_data_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function exportToGoogleSheets() {
+            if (readings.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            const csvData = readings.map(reading => {
+                const date = new Date(reading.datetime);
+                const category = getBPCategory(reading.systolic, reading.diastolic);
+                return [
+                    date.toLocaleDateString(),
+                    date.toLocaleTimeString(),
+                    reading.systolic,
+                    reading.diastolic,
+                    reading.pulse || '',
+                    category.name,
+                    reading.notes || ''
+                ].join(',');
+            }).join('\n');
+            
+            const headers = 'Date,Time,Systolic,Diastolic,Heart Rate,Category,Notes\n';
+            const fullData = headers + csvData;
+            
+            // Copy to clipboard for easy pasting into Google Sheets
+            navigator.clipboard.writeText(fullData).then(() => {
+                alert('Data copied to clipboard! You can now paste it into Google Sheets.\n\nTip: Create a new Google Sheet, select cell A1, and paste (Ctrl+V)');
+            }).catch(() => {
+                // Fallback: show data in alert
+                const blob = new Blob([fullData], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'bp_data_for_sheets.csv';
+                a.click();
+                window.URL.revokeObjectURL(url);
+                alert('CSV file downloaded. Upload this to Google Sheets: File > Import > Upload');
+            });
+        }
+        
+        // Initialize on load
+        displayReadings();
+        updateStats();
+    </script>
+</body>
+</html>
